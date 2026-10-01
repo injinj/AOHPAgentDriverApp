@@ -1876,7 +1876,7 @@ public final class JsonCommandHandler {
 
     private JSONObject sandboxCreate(JSONObject p) throws JSONException {
         String name = p.getString("name");
-        String tpl = p.optString("template", "alpine");
+        String tpl = p.optString("template", "debian");
         ShellExecutor.CommandResult r = mContainer.createContainer(name, tpl);
         return crToJson(r);
     }

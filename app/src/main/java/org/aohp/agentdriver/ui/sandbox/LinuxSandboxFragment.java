@@ -132,6 +132,7 @@ public class LinuxSandboxFragment extends Fragment implements EnvAdapter.EnvActi
 
     /** 无沙盒时自动创建的默认环境名。 */
     private static final String OPENCLAW_AUTO_ENV_NAME = "oc";
+    private static final String DEFAULT_TEMPLATE = "debian";
 
     private static final String OPENCLAW_GATEWAY_SERVICE_ID = "openclaw-gateway";
 
@@ -434,7 +435,7 @@ public class LinuxSandboxFragment extends Fragment implements EnvAdapter.EnvActi
                 () -> {
                     int num = envCounter.incrementAndGet();
                     String name = "env-" + num;
-                    ShellExecutor.CommandResult result = containerClient.createContainer(name, "alpine");
+                    ShellExecutor.CommandResult result = containerClient.createContainer(name, DEFAULT_TEMPLATE);
 
                     if (result.success) {
                         mainHandler.post(
@@ -589,7 +590,7 @@ public class LinuxSandboxFragment extends Fragment implements EnvAdapter.EnvActi
                                                         R.string.terminal_no_sandbox_creating,
                                                         OPENCLAW_AUTO_ENV_NAME)));
                         ShellExecutor.CommandResult r =
-                                containerClient.createContainer(OPENCLAW_AUTO_ENV_NAME, "alpine");
+                                containerClient.createContainer(OPENCLAW_AUTO_ENV_NAME, DEFAULT_TEMPLATE);
                         if (!r.success) {
                             mainHandler.post(
                                     () -> {
