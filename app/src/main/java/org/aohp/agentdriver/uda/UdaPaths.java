@@ -9,7 +9,7 @@ import java.io.File;
 /** Host/container paths for UDAGen workspace (bind-mounted via aohp-containerd). */
 public final class UdaPaths {
     public static final String CONTAINER_NAME = "uda";
-    public static final String CONTAINER_TEMPLATE = "alpine";
+    public static final String CONTAINER_TEMPLATE = "debian";
 
     /** Android host shared directory (bind → container workspace). */
     public static final String HOST_SHARED_ROOT = "/data/aohp/shared/uda";
