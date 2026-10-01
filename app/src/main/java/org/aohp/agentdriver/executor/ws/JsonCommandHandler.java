@@ -30,6 +30,7 @@ import org.java_websocket.WebSocket;
 import androidx.core.content.ContextCompat;
 
 import org.json.JSONArray;
+import org.aohp.agentdriver.secret.SecretStore;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -84,6 +85,7 @@ public final class JsonCommandHandler {
     private static final int INPUT_MODE_PREPEND = 2;
 
     private final Context mContext;
+    private final SecretStore mSecrets;
     private final ShellExecutor mShell;
     private final AohpVdClient mVd;
     private final AohpAgentViewClient mAgentView;
@@ -100,6 +102,7 @@ public final class JsonCommandHandler {
         mVd = AohpVdClient.getInstance(mContext);
         mAgentView = new AohpAgentViewClient(mContext);
         mContainer = new AohpContainerClient(mContext);
+        mSecrets = new SecretStore(mContext);
         mEventStream = new AohpEventStreamClient(mContext);
         mSecurityBridge = new AohpSecurityBridgeClient();
         mFileBridge = new FileBridgeManager(mContext);
@@ -257,6 +260,14 @@ public final class JsonCommandHandler {
                 return completedJson(() -> sandboxSvcLog(p));
             case "sandbox.diag":
                 return completedJson(() -> sandboxDiag(p));
+            case "secret.get":
+                return completedJson(() -> secretGet(p));
+            case "secret.set":
+                return completedJson(() -> secretSet(p));
+            case "secret.delete":
+                return completedJson(() -> secretDelete(p));
+            case "secret.list":
+                return completedJson(this::secretList);
             case "file.stat":
                 return completedJson(() -> mFileBridge.stat(p));
             case "file.list":
@@ -337,6 +348,9 @@ public final class JsonCommandHandler {
         JSONObject o = new JSONObject();
         o.put("cliProtocol", 1);
         o.put("app", mContext.getPackageName());
+        JSONArray features = new JSONArray();
+        features.put("secrets");
+        o.put("features", features);
         return o;
     }
 
@@ -1897,6 +1911,46 @@ public final class JsonCommandHandler {
         int to = p.optInt("timeoutMs", 30000);
         ShellExecutor.CommandResult r = mContainer.execSync(name, cmd, to);
         return crToJson(r);
+    }
+
+    // ---- secrets (Android Keystore-backed store for provider keys used inside sandboxes) ----
+
+    private JSONObject secretGet(JSONObject p) throws JSONException {
+        String name = p.optString("name", "");
+        if (!SecretStore.isValidName(name)) return errObj("bad_args", "invalid secret name");
+        String v = mSecrets.get(name);
+        if (v == null) return errObj("not_found", "no secret named " + name);
+        JSONObject o = new JSONObject();
+        o.put("name", name);
+        o.put("value", v);
+        return o;
+    }
+
+    private JSONObject secretSet(JSONObject p) throws JSONException {
+        String name = p.optString("name", "");
+        if (!SecretStore.isValidName(name)) return errObj("bad_args", "invalid secret name");
+        if (!p.has("value") || p.isNull("value")) return errObj("bad_args", "value required");
+        boolean ok = mSecrets.set(name, p.getString("value"));
+        if (!ok) return errObj("bad_args", "value rejected");
+        JSONObject o = new JSONObject();
+        o.put("ok", true);
+        o.put("name", name);
+        return o;
+    }
+
+    private JSONObject secretDelete(JSONObject p) throws JSONException {
+        String name = p.optString("name", "");
+        if (!SecretStore.isValidName(name)) return errObj("bad_args", "invalid secret name");
+        JSONObject o = new JSONObject();
+        o.put("ok", mSecrets.delete(name));
+        o.put("name", name);
+        return o;
+    }
+
+    private JSONObject secretList() throws JSONException {
+        JSONObject o = new JSONObject();
+        o.put("names", new JSONArray(mSecrets.list()));
+        return o;
     }
 
     private JSONObject sandboxSvcStart(JSONObject p) throws JSONException {
